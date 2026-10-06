@@ -1,370 +1,516 @@
 'use client';
-import { useState } from 'react';
 
-type Role = 'student' | 'organizer' | 'faculty';
-type Tab = 'dashboard' | 'events' | 'clubs' | 'approvals';
+import React, { useState } from 'react';
+import { 
+  Shield, QrCode, Calendar, CheckCircle2, Clock, PlusCircle, 
+  UserCheck, AlertTriangle, Search, Filter, ArrowRight, Lock, 
+  Terminal, Award, DollarSign, Activity, Check, X
+} from 'lucide-react';
+
+type Role = 'student' | 'organizer' | 'faculty' | 'admin';
 
 interface EventItem {
-  id: number;
+  id: string;
   title: string;
   club: string;
-  date: string;
   category: string;
-  status: 'Approved' | 'Pending';
+  date: string;
+  venue: string;
+  type: 'Free' | 'Paid';
+  price?: number;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  description: string;
 }
 
-export default function CampusShalaApp() {
-  const [role, setRole] = useState<Role>('student');
-  const [currentTab, setCurrentTab] = useState<Tab>('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
+export default function CampusShalaEndgame() {
+  const [currentRole, setCurrentRole] = useState<Role>('student');
+  const [activeTab, setActiveTab] = useState<'discover' | 'passport' | 'create' | 'approvals' | 'admin'>('discover');
+  
   const [events, setEvents] = useState<EventItem[]>([
-    { id: 1, title: 'TechNova Hackathon 2026', club: 'CodeGeeks MUJ', date: '15 Oct 2026', category: 'Technical', status: 'Approved' },
-    { id: 2, title: 'Oneiros Cultural Fest', club: 'Cultural Society', date: '22 Oct 2026', category: 'Cultural', status: 'Approved' },
-    { id: 3, title: 'RoboWars Arena', club: 'Robotics Club', date: '05 Nov 2026', category: 'Technical', status: 'Pending' },
+    {
+      id: 'MUJ-EG-01',
+      title: 'Quantum Computing & AI Hackathon 2026',
+      club: 'Google Developer Group MUJ',
+      category: 'Technical',
+      date: '15 Oct 2026, 10:00 AM',
+      venue: 'Tatrix Lab, AB-1',
+      type: 'Free',
+      status: 'Approved',
+      description: 'A 24-hour hackathon to build timeline-saving algorithms inspired by Stark tech.'
+    },
+    {
+      id: 'MUJ-EG-02',
+      title: 'RoboWars Mechatronics Arena',
+      club: 'Department of Mechatronics',
+      category: 'Workshop',
+      date: '20 Oct 2026, 02:00 PM',
+      venue: 'IoT Fab Lab',
+      type: 'Paid',
+      price: 250,
+      status: 'Pending',
+      description: 'Battle bots across structured testing tracks with Arduino & RPi integration.'
+    },
+    {
+      id: 'MUJ-EG-03',
+      title: 'VibeCheck Cultural Fest: Endgame Night',
+      club: 'Student Council MUJ',
+      category: 'Cultural',
+      date: '30 Oct 2026, 06:00 PM',
+      venue: 'MUJ Quadrangle',
+      type: 'Paid',
+      price: 500,
+      status: 'Approved',
+      description: 'The ultimate musical and dance showdown to close out the semester.'
+    }
   ]);
 
-  const [newEventTitle, setNewEventTitle] = useState('');
-  const [newEventClub, setNewEventClub] = useState('');
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    club: 'ACM MUJ Chapter',
+    category: 'Technical',
+    date: '',
+    venue: '',
+    type: 'Free' as 'Free' | 'Paid',
+    price: 0,
+    description: ''
+  });
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email.trim() && password.trim()) {
-      setIsLoggedIn(true);
-      setCurrentTab('dashboard');
-    } else {
-      alert('Kripya valid email aur password bharein!');
+  const [registeredEvents, setRegisteredEvents] = useState<string[]>(['MUJ-EG-01']);
+  const [selectedQR, setSelectedQR] = useState<string | null>(null);
+
+  const handleRegister = (id: string, type: 'Free' | 'Paid') => {
+    if (type === 'Paid') {
+      alert('Redirecting to secure Razorpay Gateway (Stark Pay)...');
+    }
+    if (!registeredEvents.includes(id)) {
+      setRegisteredEvents([...registeredEvents, id]);
+      alert('Registration successful! Unique QR Ticket generated in your Campus Passport.');
     }
   };
 
   const handleCreateEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newEventTitle && newEventClub) {
-      const newItem: EventItem = {
-        id: events.length + 1,
-        title: newEventTitle,
-        club: newEventClub,
-        date: '30 Nov 2026',
-        category: 'General',
-        status: role === 'faculty' ? 'Approved' : 'Pending',
-      };
-      setEvents([newItem, ...events]);
-      setNewEventTitle('');
-      setNewEventClub('');
-      alert('Event successfully submitted in the system!');
-    }
+    const item: EventItem = {
+      id: `MUJ-EG-0${events.length + 1}`,
+      ...newEvent,
+      status: 'Pending'
+    };
+    setEvents([item, ...events]);
+    alert('Event proposal submitted to Faculty / HOD for approval review!');
+    setNewEvent({ title: '', club: 'ACM MUJ Chapter', category: 'Technical', date: '', venue: '', type: 'Free', price: 0, description: '' });
+    setActiveTab('discover');
   };
 
-  const approveEvent = (id: number) => {
-    setEvents(events.map(ev => ev.id === id ? { ...ev, status: 'Approved' } : ev));
+  const updateEventStatus = (id: string, status: 'Approved' | 'Rejected') => {
+    setEvents(events.map(ev => ev.id === id ? { ...ev, status } : ev));
   };
 
-  // 1. LOGIN SCREEN
-  if (!isLoggedIn) {
-    return (
-      <main className="min-h-screen relative overflow-hidden bg-[#050507] text-white flex flex-col items-center justify-center p-6 font-sans">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-red-600/15 rounded-full blur-[150px] pointer-events-none"></div>
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-rose-900/20 rounded-full blur-[180px] pointer-events-none"></div>
+  const totalEvents = events.length;
+  const activeEvents = events.filter(e => e.status === 'Approved').length;
+  const pendingEvents = events.filter(e => e.status === 'Pending').length;
 
-        <div className="w-full max-w-md p-8 rounded-3xl bg-neutral-950/90 backdrop-blur-3xl border border-red-600/45 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative z-10">
-          <div className="text-center mb-6">
-            <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-red-600/20 text-red-500 rounded border border-red-600/40">
-              MUJ UNIFIED ECOSYSTEM
-            </span>
-            <h1 className="text-3xl font-black tracking-wider uppercase mt-3 bg-gradient-to-r from-red-500 to-white bg-clip-text text-transparent">
-              CAMPUSSHALA
-            </h1>
-            <p className="text-xs text-neutral-400 mt-1 uppercase tracking-wider">Select Role & Authenticate</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mb-6">
-            {(['student', 'organizer', 'faculty'] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(r)}
-                className={`py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition border ${
-                  role === r
-                    ? 'bg-red-600 text-white border-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)]'
-                    : 'bg-neutral-900 text-neutral-400 border-neutral-800 hover:text-white'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-300">University Mail</label>
-              <input
-                type="email"
-                required
-                placeholder="name@muj.manipal.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="px-4 py-3 bg-neutral-900 border border-neutral-800 focus:border-red-600 rounded-xl text-xs outline-none text-white font-medium"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Password</label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="px-4 py-3 bg-neutral-900 border border-neutral-800 focus:border-red-600 rounded-xl text-xs outline-none text-white font-medium"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="mt-2 w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] transition cursor-pointer"
-            >
-              LOGIN TO {role.toUpperCase()} PORTAL &rarr;
-            </button>
-          </form>
-        </div>
-      </main>
-    );
-  }
-
-  // 2. DASHBOARD / INNER INTERFACES SCREEN
   return (
-    <main className="min-h-screen relative bg-[#050507] text-white flex flex-col font-sans selection:bg-red-600 selection:text-white">
-      
-      {/* Top Navigation Bar */}
-      <header className="w-full border-b border-neutral-900 bg-neutral-950/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-black tracking-wider uppercase bg-gradient-to-r from-red-500 to-white bg-clip-text text-transparent">
-            CAMPUSSHALA <span className="text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-500 border border-red-600/40 not-italic uppercase">{role}</span>
-          </h1>
+    <div className="min-h-screen bg-[#06080F] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
+      <header className="border-b border-cyan-500/30 bg-[#090d16]/90 backdrop-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+            <Shield className="w-6 h-6 text-black animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-lg font-black tracking-widest text-cyan-400 uppercase flex items-center gap-2">
+              CAMPUSSHALA <span className="text-xs px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/50 text-cyan-300">MUJ x ENDGAME</span>
+            </h1>
+            <p className="text-xs text-slate-400">Manipal University Jaipur • Verified Tactical Portal</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-neutral-400 font-semibold hidden md:inline">MUJ Campus Network</span>
-          <button
-            onClick={() => setIsLoggedIn(false)}
-            className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-xs font-bold uppercase tracking-wider text-red-500 transition cursor-pointer"
-          >
-            Logout
-          </button>
+        <div className="flex items-center space-x-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800">
+          <span className="text-xs text-slate-400 px-2 font-mono">ROLE:</span>
+          {(['student', 'organizer', 'faculty', 'admin'] as Role[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setCurrentRole(r)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
+                currentRole === r 
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-[0_0_10px_rgba(6,182,212,0.4)]' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
         </div>
       </header>
 
-      {/* Main App Layout */}
-      <div className="flex flex-1 max-w-7xl w-full mx-auto p-6 gap-8">
-        
-        {/* Sidebar Navigation */}
-        <aside className="w-64 hidden md:flex flex-col gap-2">
-          <div className="p-4 rounded-2xl bg-neutral-900/40 border border-neutral-800/80 mb-4">
-            <p className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Active Session</p>
-            <p className="text-sm font-bold text-white truncate mt-0.5">{email}</p>
-            <span className="inline-block mt-2 px-2.5 py-0.5 bg-red-600/20 text-red-500 text-[10px] font-black uppercase rounded border border-red-600/30">
-              Role: {role}
-            </span>
+      <main className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="relative rounded-2xl overflow-hidden border border-cyan-500/40 bg-gradient-to-r from-slate-950 via-[#0a1124] to-slate-950 p-8 shadow-[inset_0_0_30px_rgba(6,182,212,0.1)]">
+          <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+            <Terminal className="w-64 h-64 text-cyan-400" />
+          </div>
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono mb-4">
+              <Activity className="w-3.5 h-3.5 animate-spin" /> QUANTUM STARK PROTOCOL V2.6 ACTIVE
+            </div>
+            <h2 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3">
+              {currentRole === 'student' && "Discover Your Next Mission, Avenger."}
+              {currentRole === 'organizer' && "Deploy & Manage Campus Operations."}
+              {currentRole === 'faculty' && "Review & Authorize Event Submissions."}
+              {currentRole === 'admin' && "Central Command & University Analytics."}
+            </h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Unified event discovery, tamper-proof QR attendance tracking, and verified co-curricular credentials across Manipal University Jaipur.
+            </p>
           </div>
 
-          <button
-            onClick={() => setCurrentTab('dashboard')}
-            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-              currentTab === 'dashboard' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
-            }`}
-          >
-            📊 System Dashboard
-          </button>
-
-          <button
-            onClick={() => setCurrentTab('events')}
-            className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-              currentTab === 'events' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
-            }`}
-          >
-            🎉 Events & Registrations
-          </button>
-
-          {(role === 'organizer' || role === 'faculty') && (
-            <button
-              onClick={() => setCurrentTab('clubs')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                currentTab === 'clubs' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
-              }`}
+          <div className="flex flex-wrap gap-3 mt-8 pt-6 border-t border-slate-800/80">
+            <button 
+              onClick={() => setActiveTab('discover')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === 'discover' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-cyan-500/50'}`}
             >
-              ⚡ Manage Club Events
+              <Search className="w-4 h-4" /> Discover Events
             </button>
-          )}
 
-          {role === 'faculty' && (
-            <button
-              onClick={() => setCurrentTab('approvals')}
-              className={`w-full text-left px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer ${
-                currentTab === 'approvals' ? 'bg-red-600 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]' : 'text-neutral-400 hover:bg-neutral-900 hover:text-white'
-              }`}
-            >
-              ✅ Pending Approvals
-            </button>
-          )}
-        </aside>
+            {currentRole === 'student' && (
+              <button 
+                onClick={() => setActiveTab('passport')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === 'passport' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-cyan-500/50'}`}
+              >
+                <QrCode className="w-4 h-4" /> My Campus Passport & QR
+              </button>
+            )}
 
-        {/* Content Workspace */}
-        <section className="flex-1 flex flex-col gap-6">
-          
-          {/* Mobile Tab Switcher */}
-          <div className="flex md:hidden gap-2 overflow-x-auto pb-2">
-            <button onClick={() => setCurrentTab('dashboard')} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer ${currentTab === 'dashboard' ? 'bg-red-600 text-white' : 'bg-neutral-900 text-neutral-400'}`}>Dashboard</button>
-            <button onClick={() => setCurrentTab('events')} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer ${currentTab === 'events' ? 'bg-red-600 text-white' : 'bg-neutral-900 text-neutral-400'}`}>Events</button>
-            {(role === 'organizer' || role === 'faculty') && <button onClick={() => setCurrentTab('clubs')} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer ${currentTab === 'clubs' ? 'bg-red-600 text-white' : 'bg-neutral-900 text-neutral-400'}`}>Manage</button>}
-            {role === 'faculty' && <button onClick={() => setCurrentTab('approvals')} className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer ${currentTab === 'approvals' ? 'bg-red-600 text-white' : 'bg-neutral-900 text-neutral-400'}`}>Approvals</button>}
+            {(currentRole === 'organizer' || currentRole === 'admin') && (
+              <button 
+                onClick={() => setActiveTab('create')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === 'create' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-cyan-500/50'}`}
+              >
+                <PlusCircle className="w-4 h-4" /> Create Event Proposal
+              </button>
+            )}
+
+            {(currentRole === 'faculty' || currentRole === 'admin') && (
+              <button 
+                onClick={() => setActiveTab('approvals')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === 'approvals' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-cyan-500/50'}`}
+              >
+                <UserCheck className="w-4 h-4" /> HOD Approvals ({pendingEvents})
+              </button>
+            )}
+
+            {currentRole === 'admin' && (
+              <button 
+                onClick={() => setActiveTab('admin')}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all ${activeTab === 'admin' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:border-cyan-500/50'}`}
+              >
+                <Award className="w-4 h-4" /> Admin Analytics
+              </button>
+            )}
           </div>
+        </div>
 
-          {/* TAB 1: DASHBOARD */}
-          {currentTab === 'dashboard' && (
-            <div className="flex flex-col gap-6">
-              <div className="p-8 rounded-3xl bg-gradient-to-r from-neutral-900 via-neutral-950 to-neutral-900 border border-neutral-800 relative overflow-hidden shadow-2xl">
-                <div className="absolute right-0 top-0 w-72 h-72 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
-                <h2 className="text-3xl font-black uppercase tracking-tight mb-2">Welcome to your <span className="text-red-500">Command Center</span></h2>
-                <p className="text-neutral-400 text-sm max-w-xl mb-6">Manage all campus activities, track fest registrations, and execute club operations seamlessly with high-performance metrics.</p>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Active Events</p>
-                    <p className="text-3xl font-black text-white mt-1">{events.length}</p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">System Status</p>
-                    <p className="text-xl font-black text-emerald-400 mt-2 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> ONLINE
-                    </p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-neutral-950/80 border border-neutral-800">
-                    <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Access Level</p>
-                    <p className="text-xl font-black text-red-500 mt-2 uppercase">{role} ALPHA</p>
-                  </div>
+        {activeTab === 'discover' && (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Calendar className="text-cyan-400 w-5 h-5" /> Approved Campus Missions
+              </h3>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <input 
+                    type="text" 
+                    placeholder="Search events, clubs..." 
+                    className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                  />
                 </div>
               </div>
             </div>
-          )}
 
-          {/* TAB 2: EVENTS & REGISTRATIONS */}
-          {currentTab === 'events' && (
-            <div className="flex flex-col gap-6">
-              <div className="flex justify-between items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.filter(ev => ev.status === 'Approved').map((ev) => (
+                <div key={ev.id} className="bg-slate-900/60 border border-cyan-500/20 rounded-2xl p-6 flex flex-col justify-between hover:border-cyan-500/60 transition-all group">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-500/30 font-mono">
+                        {ev.category}
+                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold ${ev.type === 'Free' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : 'bg-amber-950 text-amber-400 border border-amber-500/30'}`}>
+                        {ev.type === 'Paid' ? `₹${ev.price}` : 'Free'}
+                      </span>
+                    </div>
+
+                    <h4 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors">{ev.title}</h4>
+                    <p className="text-xs text-cyan-500 font-mono">{ev.club}</p>
+                    <p className="text-sm text-slate-400 line-clamp-2">{ev.description}</p>
+                    
+                    <div className="text-xs text-slate-400 space-y-1 pt-2 border-t border-slate-800">
+                      <p className="flex items-center gap-2"><Clock className="w-3.5 h-3.5 text-cyan-400" /> {ev.date}</p>
+                      <p className="flex items-center gap-2"><Shield className="w-3.5 h-3.5 text-cyan-400" /> {ev.venue}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+                    {registeredEvents.includes(ev.id) ? (
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-4 h-4" /> Registered & Ticket Issued
+                      </span>
+                    ) : (
+                      <button 
+                        onClick={() => handleRegister(ev.id, ev.type)}
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-xs font-bold uppercase tracking-wider hover:shadow-[0_0_15px_rgba(6,182,212,0.6)] transition-all flex items-center justify-center gap-2"
+                      >
+                        {ev.type === 'Paid' ? <DollarSign className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+                        {ev.type === 'Paid' ? `Pay ₹${ev.price} & Register` : 'Instant Register & QR'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'passport' && currentRole === 'student' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <QrCode className="text-cyan-400 w-5 h-5" /> Campus Passport & Attendance Passes
+            </h3>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                {registeredEvents.map((eventId) => {
+                  const ev = events.find(e => e.id === eventId);
+                  if (!ev) return null;
+                  return (
+                    <div key={eventId} className="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="space-y-2">
+                        <span className="text-xs text-cyan-400 font-mono">TICKET ID: MUJ-PASS-{ev.id}</span>
+                        <h4 className="text-lg font-bold text-white">{ev.title}</h4>
+                        <p className="text-xs text-slate-400">{ev.date} • {ev.venue}</p>
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs border border-emerald-500/30 font-mono mt-2">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Verified Ticket Active
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedQR(ev.title)}
+                        className="px-5 py-3 rounded-xl bg-cyan-500 text-black font-bold text-xs uppercase tracking-wider hover:shadow-[0_0_15px_rgba(6,182,212,0.6)] transition-all flex items-center gap-2 shrink-0"
+                      >
+                        <QrCode className="w-4 h-4" /> Show QR Ticket
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="bg-slate-900/90 border border-cyan-500/50 rounded-2xl p-6 text-center flex flex-col items-center justify-center space-y-4 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+                <h4 className="text-sm font-bold text-cyan-400 tracking-widest uppercase">Live Attendance Pass</h4>
+                <div className="w-48 h-48 bg-white rounded-xl p-4 flex items-center justify-center border-4 border-cyan-500/50 shadow-inner">
+                  <div className="w-full h-full bg-slate-950 rounded grid grid-cols-6 gap-1 p-2">
+                    {Array.from({ length: 36 }).map((_, i) => (
+                      <div key={i} className={`${i % 2 === 0 || i % 5 === 0 ? 'bg-cyan-400' : 'bg-slate-900'} rounded-xs`} />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-400">Scan at event entrance with organizer scanner to record verified attendance.</p>
+                <p className="text-xs font-mono text-cyan-300">{selectedQR ? `Selected: ${selectedQR}` : 'Select a ticket to display QR'}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'create' && (
+          <div className="max-w-2xl mx-auto bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-8 space-y-6 shadow-[0_0_25px_rgba(6,182,212,0.1)]">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <PlusCircle className="text-cyan-400 w-5 h-5" /> Submit New Event Proposal
+            </h3>
+
+            <form onSubmit={handleCreateEvent} className="space-y-4">
+              <div>
+                <label className="text-xs font-mono text-slate-400 mb-1 block">EVENT TITLE</label>
+                <input 
+                  type="text" 
+                  required
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  placeholder="e.g. Stark AI Workshop" 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-xl font-black uppercase tracking-wider">Live Campus Events</h3>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mt-0.5">Explore & register for upcoming fests</p>
+                  <label className="text-xs font-mono text-slate-400 mb-1 block">CLUB / ORGANIZER</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newEvent.club}
+                    onChange={(e) => setNewEvent({ ...newEvent, club: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-slate-400 mb-1 block">CATEGORY</label>
+                  <select 
+                    value={newEvent.category}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  >
+                    <option>Technical</option>
+                    <option>Workshop</option>
+                    <option>Cultural</option>
+                    <option>Sports</option>
+                  </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {events.map((ev) => (
-                  <div key={ev.id} className="p-6 rounded-2xl bg-neutral-900/60 border border-neutral-800 hover:border-red-600/50 transition flex flex-col justify-between gap-4">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="px-2.5 py-1 text-[10px] font-black uppercase bg-red-600/20 text-red-500 rounded border border-red-600/30">
-                          {ev.category}
-                        </span>
-                        <span className={`px-2.5 py-1 text-[10px] font-black uppercase rounded border ${ev.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}`}>
-                          {ev.status}
-                        </span>
-                      </div>
-                      <h4 className="text-lg font-black uppercase tracking-wide">{ev.title}</h4>
-                      <p className="text-xs text-neutral-400 font-medium mt-1">Organized by <span className="text-white">{ev.club}</span> • {ev.date}</p>
-                    </div>
-
-                    <button 
-                      onClick={() => alert(`Successfully registered for ${ev.title}! Pass generated.`)}
-                      className="w-full py-2.5 bg-neutral-950 hover:bg-red-600 text-white text-xs font-black uppercase tracking-widest rounded-xl border border-neutral-800 hover:border-red-600 transition cursor-pointer"
-                    >
-                      Register Now &rarr;
-                    </button>
-                  </div>
-                ))}
+                <div>
+                  <label className="text-xs font-mono text-slate-400 mb-1 block">DATE & TIME</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    placeholder="25 Nov 2026, 11:00 AM" 
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-slate-400 mb-1 block">VENUE</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={newEvent.venue}
+                    onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
+                    placeholder="Auditorium / Lab" 
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 3: CLUB / ORGANIZER MANAGE */}
-          {currentTab === 'clubs' && (
-            <div className="flex flex-col gap-6">
-              <div className="p-6 rounded-2xl bg-neutral-900/60 border border-neutral-800">
-                <h3 className="text-xl font-black uppercase tracking-wider mb-1">Launch New Event</h3>
-                <p className="text-xs text-neutral-400 uppercase tracking-wider mb-4">Submit your club event for administrative review</p>
-
-                <form onSubmit={handleCreateEvent} className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Event Title</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. AI Symposium 2026"
-                      value={newEventTitle}
-                      onChange={(e) => setNewEventTitle(e.target.value)}
-                      className="px-4 py-3 bg-neutral-950 border border-neutral-800 focus:border-red-600 rounded-xl text-xs outline-none text-white font-medium"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-300">Club / Society Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Google Developer Student Club"
-                      value={newEventClub}
-                      onChange={(e) => setNewEventClub(e.target.value)}
-                      className="px-4 py-3 bg-neutral-950 border border-neutral-800 focus:border-red-600 rounded-xl text-xs outline-none text-white font-medium"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.4)] transition cursor-pointer"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-mono text-slate-400 mb-1 block">EVENT TYPE</label>
+                  <select 
+                    value={newEvent.type}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as 'Free' | 'Paid' })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
                   >
-                    Submit Event Proposal &rarr;
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: FACULTY APPROVALS */}
-          {currentTab === 'approvals' && role === 'faculty' && (
-            <div className="flex flex-col gap-6">
-              <h3 className="text-xl font-black uppercase tracking-wider">Pending Event Approvals</h3>
-              <div className="flex flex-col gap-4">
-                {events.filter(e => e.status === 'Pending').length === 0 ? (
-                  <p className="text-xs text-neutral-500 uppercase tracking-wider">No pending approvals required at this time.</p>
-                ) : (
-                  events.filter(e => e.status === 'Pending').map((ev) => (
-                    <div key={ev.id} className="p-6 rounded-2xl bg-neutral-900/60 border border-neutral-800 flex justify-between items-center">
-                      <div>
-                        <h4 className="text-lg font-black uppercase">{ev.title}</h4>
-                        <p className="text-xs text-neutral-400 mt-0.5">Club: {ev.club} • Date: {ev.date}</p>
-                      </div>
-                      <button
-                        onClick={() => approveEvent(ev.id)}
-                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer"
-                      >
-                        Approve Event
-                      </button>
-                    </div>
-                  ))
+                    <option value="Free">Free Event</option>
+                    <option value="Paid">Paid Event (Razorpay)</option>
+                  </select>
+                </div>
+                {newEvent.type === 'Paid' && (
+                  <div>
+                    <label className="text-xs font-mono text-slate-400 mb-1 block">REGISTRATION FEE (₹)</label>
+                    <input 
+                      type="number" 
+                      value={newEvent.price}
+                      onChange={(e) => setNewEvent({ ...newEvent, price: Number(e.target.value) })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
                 )}
               </div>
+
+              <div>
+                <label className="text-xs font-mono text-slate-400 mb-1 block">DESCRIPTION</label>
+                <textarea 
+                  rows={3}
+                  required
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  placeholder="Describe event agenda, speakers, and guidelines..." 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold uppercase tracking-wider hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] transition-all"
+              >
+                Submit Proposal for Faculty Review
+              </button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'approvals' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <UserCheck className="text-cyan-400 w-5 h-5" /> Faculty Event Approval Dashboard
+            </h3>
+
+            <div className="space-y-4">
+              {events.map((ev) => (
+                <div key={ev.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-cyan-400">{ev.id}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                        ev.status === 'Approved' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' :
+                        ev.status === 'Pending' ? 'bg-amber-950 text-amber-400 border border-amber-500/30' :
+                        'bg-rose-950 text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {ev.status}
+                      </span>
+                    </div>
+                    <h4 className="text-lg font-bold text-white">{ev.title}</h4>
+                    <p className="text-xs text-slate-400">{ev.club} • {ev.date} • {ev.venue}</p>
+                  </div>
+
+                  {ev.status === 'Pending' ? (
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={() => updateEventStatus(ev.id, 'Approved')}
+                        className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold hover:bg-emerald-500 hover:text-black transition-all flex items-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" /> Approve
+                      </button>
+                      <button 
+                        onClick={() => updateEventStatus(ev.id, 'Rejected')}
+                        className="px-4 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 text-xs font-bold hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5"
+                      >
+                        <X className="w-4 h-4" /> Reject
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-500 font-mono">Reviewed by HOD / Faculty</span>
+                  )}
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-        </section>
-      </div>
+        {activeTab === 'admin' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              <Award className="text-cyan-400 w-5 h-5" /> University Admin Command Center
+            </h3>
 
-      {/* Footer */}
-      <footer className="w-full text-center text-[10px] font-black uppercase tracking-widest text-neutral-500 py-4 border-t border-neutral-900 mt-auto">
-        &copy; 2026 CAMPUSSHALA SYSTEM // MANIPAL UNIVERSITY JAIPUR
-      </footer>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-slate-900/80 border border-cyan-500/30 rounded-2xl p-6">
+                <p className="text-xs font-mono text-slate-400">TOTAL EVENTS</p>
+                <p className="text-3xl font-black text-cyan-400 mt-2">{totalEvents}</p>
+              </div>
+              <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-6">
+                <p className="text-xs font-mono text-slate-400">ACTIVE PUBLISHED</p>
+                <p className="text-3xl font-black text-emerald-400 mt-2">{activeEvents}</p>
+              </div>
+              <div className="bg-slate-900/80 border border-amber-500/30 rounded-2xl p-6">
+                <p className="text-xs font-mono text-slate-400">PENDING APPROVALS</p>
+                <p className="text-3xl font-black text-amber-400 mt-2">{pendingEvents}</p>
+              </div>
+              <div className="bg-slate-900/80 border border-purple-500/30 rounded-2xl p-6">
+                <p className="text-xs font-mono text-slate-400">VERIFIED ATTENDANCE</p>
+                <p className="text-3xl font-black text-purple-400 mt-2">{1428}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-    </main>
+      </main>
+    </div>
   );
 }
